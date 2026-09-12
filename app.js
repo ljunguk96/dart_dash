@@ -20,30 +20,34 @@
     return Math.max(0, diffDays);
   }
 
-  function totalSets() {
-    return Math.ceil(WORD_BANK.length / WORDS_PER_DAY);
+  // 전체 단어를 한 바퀴 다 쓰면 다시 섞어서 이어붙이는 "셔플 백" 방식.
+  // 같은 단어를 다시 만나더라도 매번 다른 묶음/순서로 나오게 합니다.
+  function ensureSequence(state, neededLength) {
+    if (!Array.isArray(state.sequence)) state.sequence = [];
+    while (state.sequence.length < neededLength) {
+      const lap = shuffle(WORD_BANK.map((_, i) => i));
+      state.sequence = state.sequence.concat(lap);
+    }
   }
 
-  function wordsForDay(dateKey, startKey) {
+  function wordsForDay(dateKey, startKey, state) {
     const dayNumber = dayIndexFor(dateKey, startKey) + 1; // 오늘 첫 접속이면 1
-    const setIndex = (dayNumber - 1) % totalSets();
-    const start = setIndex * WORDS_PER_DAY;
-    const words = [];
-    for (let i = 0; i < WORDS_PER_DAY; i++) {
-      words.push(WORD_BANK[(start + i) % WORD_BANK.length]);
-    }
+    const start = (dayNumber - 1) * WORDS_PER_DAY;
+    ensureSequence(state, start + WORDS_PER_DAY);
+    const words = state.sequence.slice(start, start + WORDS_PER_DAY).map((i) => WORD_BANK[i]);
     return { dayNumber, words };
   }
 
   function loadState() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return { streak: 0, lastCompletedDate: null, startDate: null, days: {} };
+      if (!raw) return { streak: 0, lastCompletedDate: null, startDate: null, sequence: [], days: {} };
       const parsed = JSON.parse(raw);
       if (!parsed.startDate) parsed.startDate = null;
+      if (!Array.isArray(parsed.sequence)) parsed.sequence = [];
       return parsed;
     } catch (e) {
-      return { streak: 0, lastCompletedDate: null, startDate: null, days: {} };
+      return { streak: 0, lastCompletedDate: null, startDate: null, sequence: [], days: {} };
     }
   }
 
@@ -81,7 +85,7 @@
   const key = todayKey();
   if (!state.startDate) state.startDate = key; // 처음 접속한 날 = Day 1
   const dayState = getDayState(state, key);
-  const { dayNumber, words: todayWords } = wordsForDay(key, state.startDate);
+  const { dayNumber, words: todayWords } = wordsForDay(key, state.startDate, state);
   saveState(state);
 
   if (!dayState.quiz) {
