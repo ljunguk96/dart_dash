@@ -131,12 +131,9 @@
   );
 
   function updateHeader() {
-    dayLabel.textContent = `Day ${dayNumber}`;
-    dateLabel.textContent = new Date().toLocaleDateString("ko-KR", {
-      month: "long",
-      day: "numeric",
-      weekday: "long",
-    });
+    const now = new Date();
+    dayLabel.textContent = `${now.getMonth() + 1}.${now.getDate()} DAY${dayNumber}`;
+    dateLabel.textContent = now.toLocaleDateString("ko-KR", { weekday: "long" });
     streakBadge.textContent = `🔥 ${state.streak}일`;
     updateProgress();
   }
@@ -159,6 +156,7 @@
         <div class="ipa">${word.ipa} <span class="pos">${word.pos}</span></div>
         <div class="ko">${word.ko}</div>
         <div class="ex">${word.ex}</div>
+        <div class="ex-ko">${word.exKo}</div>
       `;
       card.addEventListener("click", () => {
         card.classList.toggle("flipped");
@@ -257,12 +255,53 @@
     streakBadge.textContent = `🔥 ${state.streak}일`;
   }
 
+  function shiftKey(baseKey, offsetDays) {
+    const d = dateFromKey(baseKey);
+    d.setDate(d.getDate() + offsetDays);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
+
+  function getRecentSummaries(days) {
+    const summaries = [];
+    const startD = dateFromKey(state.startDate);
+    for (let i = 0; i < days; i++) {
+      const dKey = shiftKey(key, -i);
+      if (dateFromKey(dKey) < startD) break; // 학습 시작 이전 날짜는 표시하지 않음
+      const [y, m, d] = dKey.split("-").map(Number);
+      const label = `${m}.${d}`;
+      const dState = state.days[dKey];
+      if (dState && dState.quiz && dState.quiz.completed) {
+        const s = dState.quiz.answers.filter((a) => a.isCorrect).length;
+        const t = dState.quiz.questions.length;
+        summaries.push({ label, text: `${s} / ${t}`, done: true });
+      } else {
+        summaries.push({ label, text: "미응시", done: false });
+      }
+    }
+    return summaries;
+  }
+
   function renderResult() {
     const quiz = dayState.quiz;
     const score = quiz.answers.filter((a) => a.isCorrect).length;
     const total = quiz.questions.length;
+    const summaries = getRecentSummaries(3);
 
     resultBox.innerHTML = `
+      <div class="recent-summary">
+        <h3>최근 학습 기록</h3>
+        <div class="summary-list">
+          ${summaries
+            .map(
+              (s) => `
+            <div class="summary-item ${s.done ? "" : "muted"}">
+              <span class="summary-date">${s.label}</span>
+              <span class="summary-score">${s.text}</span>
+            </div>`
+            )
+            .join("")}
+        </div>
+      </div>
       <h2>오늘의 결과</h2>
       <div class="score-big">${score} / ${total}</div>
       <p>${scoreMessage(score, total)}</p>
