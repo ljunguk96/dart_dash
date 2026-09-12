@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>단어대시 · 매일 20단어</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <h1>📚 단어대시</h1>
+    <div class="streak" id="streakBadge" title="연속 학습일">🔥 0일</div>
+  </header>
+
+  <main class="container">
+    <section class="day-info">
+      <div>
+        <span class="day-label" id="dayLabel">Day 1</span>
+        <span class="date-label" id="dateLabel"></span>
+      </div>
+      <div class="progress-wrap">
+        <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+        <span id="progressText">0 / 20</span>
+      </div>
+    </section>
+
+    <nav class="tabs">
+      <button class="tab-btn active" data-view="study">학습</button>
+      <button class="tab-btn" data-view="quiz">퀴즈</button>
+      <button class="tab-btn" data-view="result" id="resultTabBtn" hidden>결과</button>
+    </nav>
+
+    <!-- 학습(플래시카드) 뷰 -->
+    <section id="studyView" class="view">
+      <p class="hint">카드를 클릭하면 뜻이 보여요. 20개를 모두 확인하면 퀴즈를 풀어보세요!</p>
+      <div class="card-grid" id="cardGrid"></div>
+      <button class="primary-btn" id="goToQuizBtn">퀴즈 풀러 가기 →</button>
+    </section>
+
+    <!-- 퀴즈 뷰 -->
+    <section id="quizView" class="view" hidden>
+      <div class="quiz-box" id="quizBox"></div>
+    </section>
+
+    <!-- 결과 뷰 -->
+    <section id="resultView" class="view" hidden>
+      <div class="result-box" id="resultBox"></div>
+    </section>
+  </main>
+
+  <script src="words.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
