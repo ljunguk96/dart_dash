@@ -124,8 +124,9 @@ body {
 .flip-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
 .flip-card.flipped { background: #eef2ff; border-color: var(--primary); }
 .flip-card .en { font-weight: 700; font-size: 1.05rem; }
-.flip-card .pos { color: var(--muted); font-size: 0.75rem; margin-top: 2px; }
-.flip-card .ko { display: none; margin-top: 6px; font-size: 0.95rem; color: var(--primary-dark); }
+.flip-card .ipa { color: var(--muted); font-size: 0.78rem; margin-top: 2px; font-family: "Noto Sans", monospace; }
+.flip-card .ipa .pos { color: var(--muted); font-style: italic; margin-left: 4px; }
+.flip-card .ko { display: none; margin-top: 8px; font-size: 0.95rem; font-weight: 600; color: var(--primary-dark); }
 .flip-card .ex { display: none; margin-top: 6px; font-size: 0.75rem; color: var(--muted); font-style: italic; }
 .flip-card.flipped .ko { display: block; }
 .flip-card.flipped .ex { display: block; }

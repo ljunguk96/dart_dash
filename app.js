@@ -1,6 +1,5 @@
 (function () {
   const WORDS_PER_DAY = 20;
-  const EPOCH = new Date(2024, 0, 1); // 기준일 (요일 계산용, 로컬 자정)
   const STORAGE_KEY = "wordDash_state_v1";
 
   function todayKey() {
@@ -13,9 +12,11 @@
     return new Date(y, m - 1, d);
   }
 
-  function dayIndexFor(dateKey) {
+  // 사용자가 처음 접속한 날을 Day 1로 삼아, 그 이후 날짜 차이만큼 Day가 늘어납니다.
+  function dayIndexFor(dateKey, startKey) {
     const d = dateFromKey(dateKey);
-    const diffDays = Math.floor((d.setHours(0, 0, 0, 0) - EPOCH.setHours(0, 0, 0, 0)) / 86400000);
+    const start = dateFromKey(startKey);
+    const diffDays = Math.floor((d.setHours(0, 0, 0, 0) - start.setHours(0, 0, 0, 0)) / 86400000);
     return Math.max(0, diffDays);
   }
 
@@ -23,23 +24,26 @@
     return Math.ceil(WORD_BANK.length / WORDS_PER_DAY);
   }
 
-  function wordsForDay(dateKey) {
-    const setIndex = dayIndexFor(dateKey) % totalSets();
+  function wordsForDay(dateKey, startKey) {
+    const dayNumber = dayIndexFor(dateKey, startKey) + 1; // 오늘 첫 접속이면 1
+    const setIndex = (dayNumber - 1) % totalSets();
     const start = setIndex * WORDS_PER_DAY;
     const words = [];
     for (let i = 0; i < WORDS_PER_DAY; i++) {
       words.push(WORD_BANK[(start + i) % WORD_BANK.length]);
     }
-    return { setIndex: setIndex + 1, words };
+    return { dayNumber, words };
   }
 
   function loadState() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return { streak: 0, lastCompletedDate: null, days: {} };
-      return JSON.parse(raw);
+      if (!raw) return { streak: 0, lastCompletedDate: null, startDate: null, days: {} };
+      const parsed = JSON.parse(raw);
+      if (!parsed.startDate) parsed.startDate = null;
+      return parsed;
     } catch (e) {
-      return { streak: 0, lastCompletedDate: null, days: {} };
+      return { streak: 0, lastCompletedDate: null, startDate: null, days: {} };
     }
   }
 
@@ -68,15 +72,16 @@
       const distractorPool = WORD_BANK.filter((w) => w.en !== word.en);
       const distractors = shuffle(distractorPool).slice(0, 3).map((w) => w.ko);
       const options = shuffle([word.ko, ...distractors]);
-      return { en: word.en, pos: word.pos, ex: word.ex, correct: word.ko, options };
+      return { en: word.en, ipa: word.ipa, pos: word.pos, ex: word.ex, correct: word.ko, options };
     });
   }
 
   // ---- App state ----
   const state = loadState();
   const key = todayKey();
+  if (!state.startDate) state.startDate = key; // 처음 접속한 날 = Day 1
   const dayState = getDayState(state, key);
-  const { setIndex, words: todayWords } = wordsForDay(key);
+  const { dayNumber, words: todayWords } = wordsForDay(key, state.startDate);
   saveState(state);
 
   if (!dayState.quiz) {
@@ -122,11 +127,11 @@
   );
 
   function updateHeader() {
-    dayLabel.textContent = `Day ${setIndex}`;
+    dayLabel.textContent = `Day ${dayNumber}`;
     dateLabel.textContent = new Date().toLocaleDateString("ko-KR", {
       month: "long",
       day: "numeric",
-      weekday: "short",
+      weekday: "long",
     });
     streakBadge.textContent = `🔥 ${state.streak}일`;
     updateProgress();
@@ -147,7 +152,7 @@
       if (dayState.seen.includes(idx)) card.classList.add("flipped");
       card.innerHTML = `
         <div class="en">${word.en}</div>
-        <div class="pos">${word.pos}</div>
+        <div class="ipa">${word.ipa} <span class="pos">${word.pos}</span></div>
         <div class="ko">${word.ko}</div>
         <div class="ex">${word.ex}</div>
       `;
@@ -183,7 +188,7 @@
     quizBox.innerHTML = `
       <div class="quiz-progress">문제 ${qIndex + 1} / ${quiz.questions.length}</div>
       <div class="quiz-question">${q.en} <span class="pos">${q.pos}</span></div>
-      <div class="quiz-sub">알맞은 뜻을 고르세요</div>
+      <div class="quiz-sub">${q.ipa} · 알맞은 뜻을 고르세요</div>
       <div class="options" id="optionsWrap"></div>
     `;
 
