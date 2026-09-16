@@ -147,6 +147,36 @@
     font-size: 0.85rem;
     color: var(--muted);
   }
+  .option-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 20px;
+  }
+  .option-label {
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+  .segmented {
+    display: inline-flex;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .segmented button {
+    border: none;
+    background: transparent;
+    color: var(--text);
+    padding: 8px 14px;
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+  .segmented button + button { border-left: 1px solid var(--border); }
+  .segmented button.active {
+    background: var(--accent);
+    color: white;
+  }
 </style>
 </head>
 <body>
@@ -163,6 +193,14 @@
 
     <ul id="imageList"></ul>
     <p class="hint" id="reorderHint" style="display:none;">항목을 드래그하여 순서를 바꿀 수 있습니다. PDF 페이지는 이 순서대로 생성됩니다.</p>
+
+    <div class="option-row">
+      <span class="option-label">페이지 방향</span>
+      <div class="segmented" id="orientationToggle">
+        <button type="button" data-orientation="portrait" class="active">세로</button>
+        <button type="button" data-orientation="landscape">가로</button>
+      </div>
+    </div>
 
     <div class="actions">
       <button class="secondary" id="clearBtn" style="display:none;">전체 지우기</button>
@@ -181,10 +219,21 @@
   const clearBtn = document.getElementById('clearBtn');
   const reorderHint = document.getElementById('reorderHint');
   const statusEl = document.getElementById('status');
+  const orientationToggle = document.getElementById('orientationToggle');
 
   /** @type {{id: string, file: File, url: string}[]} */
   let images = [];
   let dragSrcId = null;
+  let orientation = 'portrait';
+
+  orientationToggle.addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-orientation]');
+    if (!btn) return;
+    orientation = btn.dataset.orientation;
+    orientationToggle.querySelectorAll('button').forEach(b => {
+      b.classList.toggle('active', b === btn);
+    });
+  });
 
   function uid() {
     return Math.random().toString(36).slice(2) + Date.now().toString(36);
@@ -290,25 +339,33 @@
     if (!images.length) return;
     convertBtn.disabled = true;
     const { jsPDF } = window.jspdf;
+    const pdfOrientation = orientation === 'landscape' ? 'l' : 'p';
+    const margin = 20;
     let pdf = null;
-    const margin = 0;
 
     try {
       for (let i = 0; i < images.length; i++) {
         statusEl.textContent = `변환 중... (${i + 1}/${images.length})`;
         const imgEl = await loadImageElement(images[i].url);
-        const w = imgEl.naturalWidth;
-        const h = imgEl.naturalHeight;
-        const orientation = w >= h ? 'l' : 'p';
 
         if (!pdf) {
-          pdf = new jsPDF({ orientation, unit: 'px', format: [w, h] });
+          pdf = new jsPDF({ orientation: pdfOrientation, unit: 'pt', format: 'a4' });
         } else {
-          pdf.addPage([w, h], orientation);
+          pdf.addPage('a4', pdfOrientation);
         }
 
+        const pageW = pdf.internal.pageSize.getWidth();
+        const pageH = pdf.internal.pageSize.getHeight();
+        const maxW = pageW - margin * 2;
+        const maxH = pageH - margin * 2;
+        const scale = Math.min(maxW / imgEl.naturalWidth, maxH / imgEl.naturalHeight);
+        const drawW = imgEl.naturalWidth * scale;
+        const drawH = imgEl.naturalHeight * scale;
+        const x = (pageW - drawW) / 2;
+        const y = (pageH - drawH) / 2;
+
         const format = images[i].file.type === 'image/png' ? 'PNG' : 'JPEG';
-        pdf.addImage(imgEl, format, margin, margin, w, h);
+        pdf.addImage(imgEl, format, x, y, drawW, drawH);
       }
 
       const filename = `converted-${new Date().toISOString().slice(0, 10)}.pdf`;
