@@ -137,6 +137,12 @@
     flex-shrink: 0;
     cursor: pointer;
   }
+  .page-label {
+    font-size: 0.75rem;
+    color: var(--muted);
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
   .item-orientation {
     display: inline-flex;
     border: 1px solid var(--border);
@@ -329,7 +335,7 @@
 
   function render() {
     imageList.innerHTML = '';
-    images.forEach(img => {
+    images.forEach((img, index) => {
       const li = document.createElement('li');
       li.draggable = true;
       li.dataset.id = img.id;
@@ -350,6 +356,10 @@
       meta.textContent = formatSize(img.file.size);
       info.appendChild(name);
       info.appendChild(meta);
+
+      const pageLabel = document.createElement('div');
+      pageLabel.className = 'page-label';
+      pageLabel.textContent = `${index + 1}페이지`;
 
       const orientationBtns = document.createElement('div');
       orientationBtns.className = 'item-orientation';
@@ -374,6 +384,7 @@
 
       li.appendChild(thumb);
       li.appendChild(info);
+      li.appendChild(pageLabel);
       li.appendChild(orientationBtns);
       li.appendChild(removeBtn);
 
