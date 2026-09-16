@@ -51,14 +51,19 @@
   }
   .back-btn {
     align-self: flex-start;
-    background: none;
-    border: none;
-    color: var(--muted);
-    font-size: 0.9rem;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 0.85rem;
     cursor: pointer;
-    padding: 4px 0 16px;
+    padding: 8px 14px;
+    margin-bottom: 16px;
+    position: sticky;
+    top: 12px;
+    z-index: 10;
   }
-  .back-btn:hover { color: var(--text); }
+  .back-btn:hover { border-color: var(--accent); color: var(--accent); }
   .home-menu {
     width: 100%;
     max-width: 640px;
@@ -403,7 +408,7 @@
   </div>
 
   <div id="view-image" class="view" style="display:none;">
-    <button type="button" class="back-btn" data-back>← 뒤로</button>
+    <button type="button" class="back-btn" data-back>← 처음 화면으로</button>
     <h1>📷 이미지 → PDF 변환기</h1>
     <p class="subtitle">이미지 파일을 넣으면 자동으로 하나의 PDF로 합쳐줍니다.</p>
 
@@ -447,7 +452,7 @@
   </div>
 
   <div id="view-pdf" class="view" style="display:none;">
-    <button type="button" class="back-btn" data-back>← 뒤로</button>
+    <button type="button" class="back-btn" data-back>← 처음 화면으로</button>
     <h1>📑 PDF 편집</h1>
     <p class="subtitle">PDF끼리 합치거나, PDF 안의 페이지 순서를 바꿀 수 있습니다.</p>
 
