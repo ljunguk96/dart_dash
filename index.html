@@ -43,6 +43,53 @@
     width: 100%;
     max-width: 980px;
   }
+  .view {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .back-btn {
+    align-self: flex-start;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 0.9rem;
+    cursor: pointer;
+    padding: 4px 0 16px;
+  }
+  .back-btn:hover { color: var(--text); }
+  .home-menu {
+    width: 100%;
+    max-width: 640px;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+    margin-top: 12px;
+  }
+  @media (min-width: 560px) {
+    .home-menu { grid-template-columns: 1fr 1fr; }
+  }
+  .home-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 28px 20px;
+    text-align: center;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    transition: border-color .15s, transform .15s;
+  }
+  .home-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+  }
+  .home-card-icon { font-size: 2.2rem; }
+  .home-card-title { font-size: 1rem; font-weight: 600; color: var(--text); }
+  .home-card-desc { font-size: 0.8rem; color: var(--muted); }
   .layout {
     display: grid;
     grid-template-columns: 1fr;
@@ -338,8 +385,27 @@
 </style>
 </head>
 <body>
-  <h1>📷 이미지 → PDF 변환기</h1>
-  <p class="subtitle">이미지 파일을 넣으면 자동으로 하나의 PDF로 합쳐줍니다. 모든 작업은 브라우저에서만 처리되며 서버로 전송되지 않습니다.</p>
+  <div id="view-home" class="view">
+    <h1>🗂️ PDF 도구</h1>
+    <p class="subtitle">원하는 기능을 선택하세요. 모든 작업은 브라우저에서만 처리되며 서버로 전송되지 않습니다.</p>
+    <div class="home-menu">
+      <button type="button" class="home-card" id="goImageBtn">
+        <span class="home-card-icon">📷</span>
+        <span class="home-card-title">이미지 → PDF로 바꾸기</span>
+        <span class="home-card-desc">사진들을 모아서 PDF 한 개로 만들어요</span>
+      </button>
+      <button type="button" class="home-card" id="goPdfBtn">
+        <span class="home-card-icon">📑</span>
+        <span class="home-card-title">PDF 편집하기</span>
+        <span class="home-card-desc">PDF끼리 합치거나, 안의 페이지 순서를 바꿔요</span>
+      </button>
+    </div>
+  </div>
+
+  <div id="view-image" class="view" style="display:none;">
+    <button type="button" class="back-btn" data-back>← 뒤로</button>
+    <h1>📷 이미지 → PDF 변환기</h1>
+    <p class="subtitle">이미지 파일을 넣으면 자동으로 하나의 PDF로 합쳐줍니다.</p>
 
   <div class="container">
     <div class="layout">
@@ -378,8 +444,14 @@
       </div>
     </div>
   </div>
+  </div>
 
-  <div class="section">
+  <div id="view-pdf" class="view" style="display:none;">
+    <button type="button" class="back-btn" data-back>← 뒤로</button>
+    <h1>📑 PDF 편집</h1>
+    <p class="subtitle">PDF끼리 합치거나, PDF 안의 페이지 순서를 바꿀 수 있습니다.</p>
+
+  <div class="section" style="margin-top: 24px; padding-top: 0; border-top: none;">
     <h1>📎 PDF 합치기</h1>
     <p class="subtitle">여러 개의 PDF 파일을 순서대로 하나로 합칩니다.</p>
 
@@ -434,12 +506,24 @@
       <div id="pageEditorStatus" class="status-text"></div>
     </div>
   </div>
+  </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
 (function () {
+  function showView(name) {
+    document.querySelectorAll('.view').forEach((el) => {
+      el.style.display = el.id === `view-${name}` ? 'flex' : 'none';
+    });
+  }
+  document.getElementById('goImageBtn').addEventListener('click', () => showView('image'));
+  document.getElementById('goPdfBtn').addEventListener('click', () => showView('pdf'));
+  document.querySelectorAll('[data-back]').forEach((btn) => {
+    btn.addEventListener('click', () => showView('home'));
+  });
+
   const dropzone = document.getElementById('dropzone');
   const fileInput = document.getElementById('fileInput');
   const imageList = document.getElementById('imageList');
