@@ -199,6 +199,37 @@
     padding: 4px 8px;
   }
   .remove-btn:hover { color: #dc2626; }
+  .filename-row {
+    margin-top: 20px;
+  }
+  .option-label {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .filename-input-wrap {
+    display: flex;
+    align-items: center;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0 12px;
+  }
+  .filename-input-wrap input {
+    flex: 1;
+    border: none;
+    outline: none;
+    background: transparent;
+    padding: 10px 0;
+    font-size: 0.9rem;
+    color: var(--text);
+    min-width: 0;
+  }
+  .filename-input-wrap span {
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
   .actions {
     display: flex;
     gap: 12px;
@@ -257,6 +288,14 @@
         <ul id="imageList"></ul>
         <p class="hint" id="reorderHint" style="display:none;">항목을 드래그하여 순서를 바꿀 수 있습니다. PDF 페이지는 이 순서대로 생성됩니다. 사진마다 세로/가로를 따로 설정할 수 있습니다 (기본값: 세로).</p>
 
+        <div class="filename-row">
+          <label for="filenameInput" class="option-label">파일 이름</label>
+          <div class="filename-input-wrap">
+            <input type="text" id="filenameInput" placeholder="converted">
+            <span>.pdf</span>
+          </div>
+        </div>
+
         <div class="actions">
           <button class="secondary" id="clearBtn" style="display:none;">전체 지우기</button>
           <button class="primary" id="convertBtn" disabled>PDF로 변환 &amp; 다운로드</button>
@@ -284,6 +323,7 @@
   const clearBtn = document.getElementById('clearBtn');
   const reorderHint = document.getElementById('reorderHint');
   const statusEl = document.getElementById('status');
+  const filenameInput = document.getElementById('filenameInput');
   const previewBox = document.getElementById('previewBox');
   const previewName = document.getElementById('previewName');
 
@@ -313,6 +353,16 @@
 
   function uid() {
     return Math.random().toString(36).slice(2) + Date.now().toString(36);
+  }
+
+  function defaultFilename() {
+    return `converted-${new Date().toISOString().slice(0, 10)}`;
+  }
+
+  function getFilename() {
+    const raw = filenameInput.value.trim() || defaultFilename();
+    const safe = raw.replace(/[\\/:*?"<>|]/g, '').replace(/\.pdf$/i, '').trim() || defaultFilename();
+    return `${safe}.pdf`;
   }
 
   function formatSize(bytes) {
@@ -496,7 +546,7 @@
         pdf.text(`${i + 1} / ${images.length}`, pageW / 2, pageH - 12, { align: 'center' });
       }
 
-      const filename = `converted-${new Date().toISOString().slice(0, 10)}.pdf`;
+      const filename = getFilename();
       pdf.save(filename);
       statusEl.textContent = `완료! "${filename}" 다운로드됨`;
     } catch (err) {
@@ -506,6 +556,8 @@
       convertBtn.disabled = images.length === 0;
     }
   }
+
+  filenameInput.placeholder = defaultFilename();
 
   dropzone.addEventListener('click', () => fileInput.click());
   fileInput.addEventListener('change', (e) => {
