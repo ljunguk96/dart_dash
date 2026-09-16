@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>매일 공부 노트</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="hero">
+    <div class="hero-inner">
+      <a class="hero-back" href="index.html">← 홈으로</a>
+      <span class="hero-eyebrow">DAILY STUDY LOG</span>
+      <h1>📺 매일 공부 노트</h1>
+      <p class="hero-sub">
+        매일 아침
+        <a href="https://www.youtube.com/@hk_koreamarket" target="_blank" rel="noopener">hk_koreamarket</a>
+        영상을 보고 배운 내용을 기록하세요.
+      </p>
+      <div class="stats" id="stats"></div>
+    </div>
+  </header>
+
+  <main class="app">
+    <aside class="form-card">
+      <h2 class="card-title">새 기록 남기기</h2>
+      <form id="entry-form">
+        <input type="hidden" id="entry-id">
+        <div class="form-row">
+          <label for="date">날짜</label>
+          <input type="date" id="date" required>
+        </div>
+        <div class="form-row">
+          <label for="video-title">영상 제목</label>
+          <input type="text" id="video-title" placeholder="예: 오늘의 시장 브리핑" required>
+        </div>
+        <div class="form-row">
+          <label for="video-url">영상 링크 (선택)</label>
+          <input type="url" id="video-url" placeholder="https://www.youtube.com/watch?v=...">
+        </div>
+        <div class="form-row">
+          <label for="tags">태그 (쉼표로 구분, 선택)</label>
+          <input type="text" id="tags" placeholder="예: 부동산, 금리, 환율">
+        </div>
+        <div class="form-row">
+          <label for="summary">요약 / 배운 점</label>
+          <textarea id="summary" rows="6" placeholder="오늘 영상에서 배운 핵심 내용을 정리하세요." required></textarea>
+        </div>
+        <div class="form-actions">
+          <button type="submit" id="submit-btn">기록 저장</button>
+          <button type="button" id="cancel-edit" class="secondary" hidden>취소</button>
+        </div>
+      </form>
+    </aside>
+
+    <section class="list-section">
+      <div class="list-toolbar">
+        <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/>
+          <path d="M20 20L16.65 16.65" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <input type="text" id="search" placeholder="제목, 요약, 태그로 검색...">
+      </div>
+      <ul id="entry-list" class="entry-list"></ul>
+      <div id="empty-state" class="empty-state" hidden>
+        <div class="empty-emoji">📝</div>
+        <p>아직 기록이 없어요.<br>오늘 본 영상부터 정리해보세요!</p>
+      </div>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
