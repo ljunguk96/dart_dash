@@ -131,6 +131,14 @@
     cursor: grab;
   }
   #imageList li.dragging { opacity: 0.4; }
+  .drag-handle {
+    color: var(--muted);
+    font-size: 1.1rem;
+    line-height: 1;
+    flex-shrink: 0;
+    cursor: grab;
+    user-select: none;
+  }
   #imageList li.selected { border-color: var(--accent); }
   #imageList li img {
     width: 56px;
@@ -345,9 +353,15 @@
       li.dataset.id = img.id;
       li.classList.toggle('selected', img.id === selectedId);
 
+      const handle = document.createElement('span');
+      handle.className = 'drag-handle';
+      handle.textContent = '⠿';
+      handle.draggable = false;
+
       const thumb = document.createElement('img');
       thumb.src = img.url;
       thumb.alt = img.file.name;
+      thumb.draggable = false;
       thumb.addEventListener('click', () => showPreview(img.id));
 
       const info = document.createElement('div');
@@ -386,6 +400,7 @@
       removeBtn.title = '제거';
       removeBtn.addEventListener('click', () => removeImage(img.id));
 
+      li.appendChild(handle);
       li.appendChild(thumb);
       li.appendChild(info);
       li.appendChild(pageLabel);
