@@ -37,7 +37,58 @@
   }
   .container {
     width: 100%;
-    max-width: 720px;
+    max-width: 980px;
+  }
+  .layout {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  @media (min-width: 760px) {
+    .layout {
+      grid-template-columns: 1fr 300px;
+      align-items: start;
+    }
+  }
+  .preview-panel {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    position: sticky;
+    top: 24px;
+  }
+  .preview-panel h2 {
+    font-size: 0.9rem;
+    margin: 0 0 12px;
+    color: var(--muted);
+  }
+  .preview-box {
+    width: 100%;
+    aspect-ratio: 3 / 4;
+    background: #f0f1f4;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .preview-box img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+  }
+  .preview-empty {
+    color: var(--muted);
+    font-size: 0.8rem;
+    text-align: center;
+    padding: 0 12px;
+  }
+  .preview-name {
+    margin-top: 10px;
+    font-size: 0.8rem;
+    color: var(--muted);
+    word-break: break-all;
   }
   #dropzone {
     background: var(--card);
@@ -76,6 +127,7 @@
     cursor: grab;
   }
   #imageList li.dragging { opacity: 0.4; }
+  #imageList li.selected { border-color: var(--accent); }
   #imageList li img {
     width: 56px;
     height: 56px;
@@ -83,6 +135,27 @@
     border-radius: 6px;
     border: 1px solid var(--border);
     flex-shrink: 0;
+    cursor: pointer;
+  }
+  .item-orientation {
+    display: inline-flex;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .item-orientation button {
+    border: none;
+    background: transparent;
+    color: var(--text);
+    padding: 5px 9px;
+    font-size: 0.75rem;
+    cursor: pointer;
+  }
+  .item-orientation button + button { border-left: 1px solid var(--border); }
+  .item-orientation button.active {
+    background: var(--accent);
+    color: white;
   }
   .file-info {
     flex: 1;
@@ -147,36 +220,6 @@
     font-size: 0.85rem;
     color: var(--muted);
   }
-  .option-row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-top: 20px;
-  }
-  .option-label {
-    font-size: 0.85rem;
-    color: var(--muted);
-  }
-  .segmented {
-    display: inline-flex;
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    overflow: hidden;
-  }
-  .segmented button {
-    border: none;
-    background: transparent;
-    color: var(--text);
-    padding: 8px 14px;
-    font-size: 0.85rem;
-    cursor: pointer;
-  }
-  .segmented button + button { border-left: 1px solid var(--border); }
-  .segmented button.active {
-    background: var(--accent);
-    color: white;
-  }
 </style>
 </head>
 <body>
@@ -184,29 +227,33 @@
   <p class="subtitle">이미지 파일을 넣으면 자동으로 하나의 PDF로 합쳐줍니다. 모든 작업은 브라우저에서만 처리되며 서버로 전송되지 않습니다.</p>
 
   <div class="container">
-    <div id="dropzone">
-      <div style="font-size: 2rem;">🖼️</div>
-      <p><strong>클릭</strong>하거나 이미지를 이곳에 <strong>드래그 앤 드롭</strong>하세요</p>
-      <p style="font-size: 0.8rem;">JPG, PNG, WEBP, GIF 등 지원</p>
-      <input id="fileInput" type="file" accept="image/*" multiple>
-    </div>
+    <div class="layout">
+      <div>
+        <div id="dropzone">
+          <div style="font-size: 2rem;">🖼️</div>
+          <p><strong>클릭</strong>하거나 이미지를 이곳에 <strong>드래그 앤 드롭</strong>하세요</p>
+          <p style="font-size: 0.8rem;">JPG, PNG, WEBP, GIF 등 지원</p>
+          <input id="fileInput" type="file" accept="image/*" multiple>
+        </div>
 
-    <ul id="imageList"></ul>
-    <p class="hint" id="reorderHint" style="display:none;">항목을 드래그하여 순서를 바꿀 수 있습니다. PDF 페이지는 이 순서대로 생성됩니다.</p>
+        <ul id="imageList"></ul>
+        <p class="hint" id="reorderHint" style="display:none;">항목을 드래그하여 순서를 바꿀 수 있습니다. PDF 페이지는 이 순서대로 생성됩니다. 사진마다 세로/가로를 따로 설정할 수 있습니다 (기본값: 세로).</p>
 
-    <div class="option-row">
-      <span class="option-label">페이지 방향</span>
-      <div class="segmented" id="orientationToggle">
-        <button type="button" data-orientation="portrait" class="active">세로</button>
-        <button type="button" data-orientation="landscape">가로</button>
+        <div class="actions">
+          <button class="secondary" id="clearBtn" style="display:none;">전체 지우기</button>
+          <button class="primary" id="convertBtn" disabled>PDF로 변환 &amp; 다운로드</button>
+        </div>
+        <div id="status"></div>
+      </div>
+
+      <div class="preview-panel">
+        <h2>미리보기</h2>
+        <div class="preview-box" id="previewBox">
+          <span class="preview-empty">이미지를 추가하거나<br>목록에서 클릭하면<br>여기에 크게 보여요</span>
+        </div>
+        <div class="preview-name" id="previewName"></div>
       </div>
     </div>
-
-    <div class="actions">
-      <button class="secondary" id="clearBtn" style="display:none;">전체 지우기</button>
-      <button class="primary" id="convertBtn" disabled>PDF로 변환 &amp; 다운로드</button>
-    </div>
-    <div id="status"></div>
   </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -219,21 +266,32 @@
   const clearBtn = document.getElementById('clearBtn');
   const reorderHint = document.getElementById('reorderHint');
   const statusEl = document.getElementById('status');
-  const orientationToggle = document.getElementById('orientationToggle');
+  const previewBox = document.getElementById('previewBox');
+  const previewName = document.getElementById('previewName');
 
-  /** @type {{id: string, file: File, url: string}[]} */
+  /** @type {{id: string, file: File, url: string, orientation: 'portrait'|'landscape'}[]} */
   let images = [];
   let dragSrcId = null;
-  let orientation = 'portrait';
+  let selectedId = null;
 
-  orientationToggle.addEventListener('click', (e) => {
-    const btn = e.target.closest('button[data-orientation]');
-    if (!btn) return;
-    orientation = btn.dataset.orientation;
-    orientationToggle.querySelectorAll('button').forEach(b => {
-      b.classList.toggle('active', b === btn);
+  function showPreview(id) {
+    const img = images.find(i => i.id === id);
+    selectedId = img ? id : null;
+    if (!img) {
+      previewBox.innerHTML = '<span class="preview-empty">이미지를 추가하거나<br>목록에서 클릭하면<br>여기에 크게 보여요</span>';
+      previewName.textContent = '';
+      return;
+    }
+    previewBox.innerHTML = '';
+    const big = document.createElement('img');
+    big.src = img.url;
+    big.alt = img.file.name;
+    previewBox.appendChild(big);
+    previewName.textContent = img.file.name;
+    document.querySelectorAll('#imageList li').forEach(li => {
+      li.classList.toggle('selected', li.dataset.id === id);
     });
-  });
+  }
 
   function uid() {
     return Math.random().toString(36).slice(2) + Date.now().toString(36);
@@ -248,10 +306,12 @@
   function addFiles(fileList) {
     const files = Array.from(fileList).filter(f => f.type.startsWith('image/'));
     if (!files.length) return;
+    const wasEmpty = images.length === 0;
     files.forEach(file => {
-      images.push({ id: uid(), file, url: URL.createObjectURL(file) });
+      images.push({ id: uid(), file, url: URL.createObjectURL(file), orientation: 'portrait' });
     });
     render();
+    if (wasEmpty) showPreview(images[0].id);
   }
 
   function removeImage(id) {
@@ -260,6 +320,10 @@
       URL.revokeObjectURL(images[idx].url);
       images.splice(idx, 1);
       render();
+      if (selectedId === id) {
+        const next = images[idx] || images[idx - 1];
+        showPreview(next ? next.id : null);
+      }
     }
   }
 
@@ -269,10 +333,12 @@
       const li = document.createElement('li');
       li.draggable = true;
       li.dataset.id = img.id;
+      li.classList.toggle('selected', img.id === selectedId);
 
       const thumb = document.createElement('img');
       thumb.src = img.url;
       thumb.alt = img.file.name;
+      thumb.addEventListener('click', () => showPreview(img.id));
 
       const info = document.createElement('div');
       info.className = 'file-info';
@@ -285,6 +351,21 @@
       info.appendChild(name);
       info.appendChild(meta);
 
+      const orientationBtns = document.createElement('div');
+      orientationBtns.className = 'item-orientation';
+      ['portrait', 'landscape'].forEach(o => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.textContent = o === 'portrait' ? '세로' : '가로';
+        b.classList.toggle('active', img.orientation === o);
+        b.addEventListener('click', () => {
+          img.orientation = o;
+          render();
+          if (selectedId === img.id) showPreview(img.id);
+        });
+        orientationBtns.appendChild(b);
+      });
+
       const removeBtn = document.createElement('button');
       removeBtn.className = 'remove-btn';
       removeBtn.textContent = '✕';
@@ -293,6 +374,7 @@
 
       li.appendChild(thumb);
       li.appendChild(info);
+      li.appendChild(orientationBtns);
       li.appendChild(removeBtn);
 
       li.addEventListener('dragstart', () => {
@@ -350,7 +432,6 @@
     if (!images.length) return;
     convertBtn.disabled = true;
     const { jsPDF } = window.jspdf;
-    const pdfOrientation = orientation === 'landscape' ? 'l' : 'p';
     const margin = 20;
     let pdf = null;
 
@@ -359,6 +440,7 @@
         statusEl.textContent = `변환 중... (${i + 1}/${images.length})`;
         const imgEl = await loadImageElement(images[i].url);
         const canvas = normalizeOrientation(imgEl);
+        const pdfOrientation = images[i].orientation === 'landscape' ? 'l' : 'p';
 
         if (!pdf) {
           pdf = new jsPDF({ orientation: pdfOrientation, unit: 'pt', format: 'a4' });
@@ -414,6 +496,7 @@
     images.forEach(img => URL.revokeObjectURL(img.url));
     images = [];
     render();
+    showPreview(null);
   });
 
   convertBtn.addEventListener('click', convertToPdf);
