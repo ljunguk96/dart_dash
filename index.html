@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>이미지 → PDF 변환기</title>
+<style>
+  :root {
+    --bg: #f4f5f7;
+    --card: #ffffff;
+    --accent: #4f46e5;
+    --accent-hover: #4338ca;
+    --border: #e2e4e9;
+    --text: #1f2430;
+    --muted: #6b7280;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 32px 16px;
+  }
+  h1 {
+    font-size: 1.6rem;
+    margin-bottom: 4px;
+  }
+  p.subtitle {
+    color: var(--muted);
+    margin-top: 0;
+    margin-bottom: 24px;
+  }
+  .container {
+    width: 100%;
+    max-width: 720px;
+  }
+  #dropzone {
+    background: var(--card);
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    padding: 40px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+  }
+  #dropzone.dragover {
+    border-color: var(--accent);
+    background: #eef1ff;
+  }
+  #dropzone p {
+    margin: 8px 0 0;
+    color: var(--muted);
+  }
+  #fileInput { display: none; }
+  #imageList {
+    list-style: none;
+    padding: 0;
+    margin: 20px 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  #imageList li {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: grab;
+  }
+  #imageList li.dragging { opacity: 0.4; }
+  #imageList li img {
+    width: 56px;
+    height: 56px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .file-info {
+    flex: 1;
+    min-width: 0;
+  }
+  .file-name {
+    font-size: 0.9rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .file-meta {
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+  .remove-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 1.2rem;
+    cursor: pointer;
+    line-height: 1;
+    padding: 4px 8px;
+  }
+  .remove-btn:hover { color: #dc2626; }
+  .actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+  }
+  button.primary {
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 20px;
+    font-size: 0.95rem;
+    cursor: pointer;
+    flex: 1;
+  }
+  button.primary:hover { background: var(--accent-hover); }
+  button.primary:disabled {
+    background: #c7c9d1;
+    cursor: not-allowed;
+  }
+  button.secondary {
+    background: var(--card);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 0.95rem;
+    cursor: pointer;
+  }
+  .hint {
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-top: 8px;
+  }
+  #status {
+    margin-top: 12px;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+</style>
+</head>
+<body>
+  <h1>📷 이미지 → PDF 변환기</h1>
+  <p class="subtitle">이미지 파일을 넣으면 자동으로 하나의 PDF로 합쳐줍니다. 모든 작업은 브라우저에서만 처리되며 서버로 전송되지 않습니다.</p>
+
+  <div class="container">
+    <div id="dropzone">
+      <div style="font-size: 2rem;">🖼️</div>
+      <p><strong>클릭</strong>하거나 이미지를 이곳에 <strong>드래그 앤 드롭</strong>하세요</p>
+      <p style="font-size: 0.8rem;">JPG, PNG, WEBP, GIF 등 지원</p>
+      <input id="fileInput" type="file" accept="image/*" multiple>
+    </div>
+
+    <ul id="imageList"></ul>
+    <p class="hint" id="reorderHint" style="display:none;">항목을 드래그하여 순서를 바꿀 수 있습니다. PDF 페이지는 이 순서대로 생성됩니다.</p>
+
+    <div class="actions">
+      <button class="secondary" id="clearBtn" style="display:none;">전체 지우기</button>
+      <button class="primary" id="convertBtn" disabled>PDF로 변환 &amp; 다운로드</button>
+    </div>
+    <div id="status"></div>
+  </div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+(function () {
+  const dropzone = document.getElementById('dropzone');
+  const fileInput = document.getElementById('fileInput');
+  const imageList = document.getElementById('imageList');
+  const convertBtn = document.getElementById('convertBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const reorderHint = document.getElementById('reorderHint');
+  const statusEl = document.getElementById('status');
+
+  /** @type {{id: string, file: File, url: string}[]} */
+  let images = [];
+  let dragSrcId = null;
+
+  function uid() {
+    return Math.random().toString(36).slice(2) + Date.now().toString(36);
+  }
+
+  function formatSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  }
+
+  function addFiles(fileList) {
+    const files = Array.from(fileList).filter(f => f.type.startsWith('image/'));
+    if (!files.length) return;
+    files.forEach(file => {
+      images.push({ id: uid(), file, url: URL.createObjectURL(file) });
+    });
+    render();
+  }
+
+  function removeImage(id) {
+    const idx = images.findIndex(img => img.id === id);
+    if (idx !== -1) {
+      URL.revokeObjectURL(images[idx].url);
+      images.splice(idx, 1);
+      render();
+    }
+  }
+
+  function render() {
+    imageList.innerHTML = '';
+    images.forEach(img => {
+      const li = document.createElement('li');
+      li.draggable = true;
+      li.dataset.id = img.id;
+
+      const thumb = document.createElement('img');
+      thumb.src = img.url;
+      thumb.alt = img.file.name;
+
+      const info = document.createElement('div');
+      info.className = 'file-info';
+      const name = document.createElement('div');
+      name.className = 'file-name';
+      name.textContent = img.file.name;
+      const meta = document.createElement('div');
+      meta.className = 'file-meta';
+      meta.textContent = formatSize(img.file.size);
+      info.appendChild(name);
+      info.appendChild(meta);
+
+      const removeBtn = document.createElement('button');
+      removeBtn.className = 'remove-btn';
+      removeBtn.textContent = '✕';
+      removeBtn.title = '제거';
+      removeBtn.addEventListener('click', () => removeImage(img.id));
+
+      li.appendChild(thumb);
+      li.appendChild(info);
+      li.appendChild(removeBtn);
+
+      li.addEventListener('dragstart', () => {
+        dragSrcId = img.id;
+        li.classList.add('dragging');
+      });
+      li.addEventListener('dragend', () => {
+        li.classList.remove('dragging');
+        dragSrcId = null;
+      });
+      li.addEventListener('dragover', (e) => {
+        e.preventDefault();
+      });
+      li.addEventListener('drop', (e) => {
+        e.preventDefault();
+        if (!dragSrcId || dragSrcId === img.id) return;
+        const fromIdx = images.findIndex(i => i.id === dragSrcId);
+        const toIdx = images.findIndex(i => i.id === img.id);
+        const [moved] = images.splice(fromIdx, 1);
+        images.splice(toIdx, 0, moved);
+        render();
+      });
+
+      imageList.appendChild(li);
+    });
+
+    const hasImages = images.length > 0;
+    convertBtn.disabled = !hasImages;
+    clearBtn.style.display = hasImages ? 'inline-block' : 'none';
+    reorderHint.style.display = images.length > 1 ? 'block' : 'none';
+    statusEl.textContent = hasImages ? `${images.length}개 이미지 준비됨` : '';
+  }
+
+  function loadImageElement(url) {
+    return new Promise((resolve, reject) => {
+      const el = new Image();
+      el.onload = () => resolve(el);
+      el.onerror = reject;
+      el.src = url;
+    });
+  }
+
+  async function convertToPdf() {
+    if (!images.length) return;
+    convertBtn.disabled = true;
+    const { jsPDF } = window.jspdf;
+    let pdf = null;
+    const margin = 0;
+
+    try {
+      for (let i = 0; i < images.length; i++) {
+        statusEl.textContent = `변환 중... (${i + 1}/${images.length})`;
+        const imgEl = await loadImageElement(images[i].url);
+        const w = imgEl.naturalWidth;
+        const h = imgEl.naturalHeight;
+        const orientation = w >= h ? 'l' : 'p';
+
+        if (!pdf) {
+          pdf = new jsPDF({ orientation, unit: 'px', format: [w, h] });
+        } else {
+          pdf.addPage([w, h], orientation);
+        }
+
+        const format = images[i].file.type === 'image/png' ? 'PNG' : 'JPEG';
+        pdf.addImage(imgEl, format, margin, margin, w, h);
+      }
+
+      const filename = `converted-${new Date().toISOString().slice(0, 10)}.pdf`;
+      pdf.save(filename);
+      statusEl.textContent = `완료! "${filename}" 다운로드됨`;
+    } catch (err) {
+      console.error(err);
+      statusEl.textContent = '오류가 발생했습니다: ' + err.message;
+    } finally {
+      convertBtn.disabled = images.length === 0;
+    }
+  }
+
+  dropzone.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', (e) => {
+    addFiles(e.target.files);
+    fileInput.value = '';
+  });
+
+  dropzone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropzone.classList.add('dragover');
+  });
+  dropzone.addEventListener('dragleave', () => {
+    dropzone.classList.remove('dragover');
+  });
+  dropzone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropzone.classList.remove('dragover');
+    addFiles(e.dataTransfer.files);
+  });
+
+  clearBtn.addEventListener('click', () => {
+    images.forEach(img => URL.revokeObjectURL(img.url));
+    images = [];
+    render();
+  });
+
+  convertBtn.addEventListener('click', convertToPdf);
+})();
+</script>
+</body>
+</html>
