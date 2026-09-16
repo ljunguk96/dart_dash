@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>매일 공부 노트</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+    <header class="app-header">
+      <h1>📺 매일 공부 노트</h1>
+      <p class="subtitle">
+        <a href="https://www.youtube.com/@hk_koreamarket" target="_blank" rel="noopener">hk_koreamarket</a>
+        영상을 보고 배운 내용을 매일 기록하세요.
+      </p>
+      <div class="stats" id="stats"></div>
+    </header>
+
+    <section class="form-section">
+      <form id="entry-form">
+        <input type="hidden" id="entry-id">
+        <div class="form-row">
+          <label for="date">날짜</label>
+          <input type="date" id="date" required>
+        </div>
+        <div class="form-row">
+          <label for="video-title">영상 제목</label>
+          <input type="text" id="video-title" placeholder="예: 오늘의 시장 브리핑" required>
+        </div>
+        <div class="form-row">
+          <label for="video-url">영상 링크 (선택)</label>
+          <input type="url" id="video-url" placeholder="https://www.youtube.com/watch?v=...">
+        </div>
+        <div class="form-row">
+          <label for="tags">태그 (쉼표로 구분, 선택)</label>
+          <input type="text" id="tags" placeholder="예: 부동산, 금리, 환율">
+        </div>
+        <div class="form-row">
+          <label for="summary">요약 / 배운 점</label>
+          <textarea id="summary" rows="5" placeholder="오늘 영상에서 배운 핵심 내용을 정리하세요." required></textarea>
+        </div>
+        <div class="form-actions">
+          <button type="submit" id="submit-btn">기록 저장</button>
+          <button type="button" id="cancel-edit" class="secondary" hidden>취소</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="list-section">
+      <div class="list-toolbar">
+        <input type="text" id="search" placeholder="제목, 요약, 태그로 검색...">
+      </div>
+      <ul id="entry-list" class="entry-list"></ul>
+      <p id="empty-state" class="empty-state" hidden>아직 기록이 없어요. 오늘 본 영상부터 정리해보세요!</p>
+    </section>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
