@@ -460,6 +460,10 @@
 
         const format = images[i].file.type === 'image/png' ? 'PNG' : 'JPEG';
         pdf.addImage(canvas, format, x, y, drawW, drawH);
+
+        pdf.setFontSize(9);
+        pdf.setTextColor(120);
+        pdf.text(`${i + 1} / ${images.length}`, pageW / 2, pageH - 12, { align: 'center' });
       }
 
       const filename = `converted-${new Date().toISOString().slice(0, 10)}.pdf`;
