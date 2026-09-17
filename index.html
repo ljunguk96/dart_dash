@@ -731,17 +731,23 @@
     const { jsPDF } = window.jspdf;
     let pdf = null;
 
+    // Cap the physical page size so a page always fits on screen at a
+    // normal zoom level, regardless of the photo's raw pixel resolution
+    // (a 4000px-wide phone photo used to become a page over a meter wide).
+    const MAX_PAGE_PT = 792; // 11in, matches Letter/A4's longer edge
+
     try {
       for (let i = 0; i < images.length; i++) {
         statusEl.textContent = `변환 중... (${i + 1}/${images.length})`;
         const imgEl = await loadImageElement(images[i].url);
         const canvas = renderToCanvas(imgEl, images[i].rotation);
-        const pageW = canvas.width;
-        const pageH = canvas.height;
+        const scale = Math.min(1, MAX_PAGE_PT / Math.max(canvas.width, canvas.height));
+        const pageW = canvas.width * scale;
+        const pageH = canvas.height * scale;
         const pdfOrientation = pageW >= pageH ? 'l' : 'p';
 
         if (!pdf) {
-          pdf = new jsPDF({ orientation: pdfOrientation, unit: 'px', format: [pageW, pageH] });
+          pdf = new jsPDF({ orientation: pdfOrientation, unit: 'pt', format: [pageW, pageH] });
         } else {
           pdf.addPage([pageW, pageH], pdfOrientation);
         }
